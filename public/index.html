@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IG Photo Composer</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <h1>IG Photo Composer</h1>
+    <p>Build collages, carousels, panels and story covers for Instagram — all processed locally.</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>1. Upload photos</h2>
+      <input type="file" id="fileInput" accept="image/*" multiple />
+      <div id="thumbs" class="thumbs"></div>
+    </section>
+
+    <section class="panel">
+      <h2>2. Choose composition</h2>
+      <select id="templateSelect">
+        <option value="grid-2x2">Grid collage 2x2 (4 photos)</option>
+        <option value="grid-3x3">Grid collage 3x3 (9 photos)</option>
+        <option value="stack-vertical">Horizontal photos → vertical panel</option>
+        <option value="stack-horizontal">Vertical photos → horizontal panel</option>
+        <option value="diptych">Diptych (2 photos, side by side)</option>
+        <option value="triptych">Triptych (3 photos, side by side)</option>
+        <option value="carousel">Carousel splitter (1 wide photo → N slides)</option>
+        <option value="story-blur">Story/Reel cover with blurred fill (1 photo)</option>
+      </select>
+
+      <div id="options" class="options"></div>
+
+      <button id="generateBtn">Generate</button>
+      <p id="status"></p>
+    </section>
+
+    <section class="panel">
+      <h2>3. Result</h2>
+      <div id="results" class="results"></div>
+    </section>
+  </main>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

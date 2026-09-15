@@ -1,0 +1,25 @@
+{
+  "name": "ig-photo-composer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local web app to combine photos into Instagram-ready collages, carousels, panels and story covers",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch server/src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^2.0.1",
+    "nanoid": "^5.0.7",
+    "sharp": "^0.35.4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.14.9",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3"
+  }
+}
