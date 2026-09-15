@@ -21,6 +21,21 @@ const optionsEl = document.getElementById("options");
 const generateBtn = document.getElementById("generateBtn");
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
+const lightbox = document.getElementById("lightbox");
+const lightboxImg = document.getElementById("lightboxImg");
+const lightboxDownload = document.getElementById("lightboxDownload");
+
+function openLightbox(url) {
+  lightboxImg.src = url;
+  lightboxDownload.href = url;
+  lightbox.classList.remove("hidden");
+}
+
+lightbox.addEventListener("click", (e) => {
+  if (e.target === lightboxDownload) return;
+  lightbox.classList.add("hidden");
+  lightboxImg.src = "";
+});
 
 fileInput.addEventListener("change", async () => {
   const files = fileInput.files;
@@ -181,6 +196,7 @@ function renderResults(urls) {
     fig.innerHTML = `
       <img src="${url}" alt="result" />
       <figcaption><a href="${url}" download>Download</a></figcaption>`;
+    fig.querySelector("img").addEventListener("click", () => openLightbox(url));
     resultsEl.appendChild(fig);
   }
 }
