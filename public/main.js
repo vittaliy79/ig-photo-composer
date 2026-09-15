@@ -11,8 +11,14 @@ const TEMPLATES = {
   diptych: { mode: "grid", rows: 1, cols: 2, count: 2 },
   triptych: { mode: "grid", rows: 1, cols: 3, count: 3 },
   carousel: { mode: "carousel" },
-  "story-blur": { mode: "story-blur" },
+  fit: { mode: "fit" },
 };
+
+const ASPECT_OPTIONS = `
+  <option value="1:1">1:1 — square</option>
+  <option value="4:5">4:5 — portrait</option>
+  <option value="1.91:1">1.91:1 — landscape</option>
+  <option value="9:16">9:16 — story/reel</option>`;
 
 const fileInput = document.getElementById("fileInput");
 const thumbsEl = document.getElementById("thumbs");
@@ -99,24 +105,40 @@ function renderOptions() {
         <input type="number" id="optSlices" min="2" max="10" value="3" />
       </label>
       <label>Aspect
-        <select id="optAspect">
-          <option value="4:5">4:5 (portrait)</option>
-          <option value="1:1">1:1 (square)</option>
-          <option value="9:16">9:16 (story)</option>
-        </select>
+        <select id="optAspect">${ASPECT_OPTIONS}</select>
       </label>`;
-  } else if (tpl.mode === "story-blur") {
+  } else if (tpl.mode === "fit") {
     optionsEl.innerHTML = `
       <label>Aspect
-        <select id="optAspect">
-          <option value="9:16">9:16 (story/reel)</option>
-          <option value="4:5">4:5 (feed portrait)</option>
-          <option value="1:1">1:1 (square)</option>
+        <select id="optAspect">${ASPECT_OPTIONS}</select>
+      </label>
+      <label>Orientation
+        <select id="optOrientation">
+          <option value="portrait">Portrait / vertical</option>
+          <option value="landscape">Landscape / horizontal</option>
         </select>
       </label>
-      <label>Blur
+      <label>Background
+        <select id="optBgMode">
+          <option value="blur">Blurred photo</option>
+          <option value="color">Solid color</option>
+        </select>
+      </label>
+      <label>Blur intensity
         <input type="number" id="optBlur" min="5" max="80" value="40" />
+      </label>
+      <label>Color
+        <input type="color" id="optColor" value="#000000" disabled />
       </label>`;
+
+    const bgModeSelect = document.getElementById("optBgMode");
+    const blurInput = document.getElementById("optBlur");
+    const colorInput = document.getElementById("optColor");
+    bgModeSelect.addEventListener("change", () => {
+      const isBlur = bgModeSelect.value === "blur";
+      blurInput.disabled = !isBlur;
+      colorInput.disabled = isBlur;
+    });
   }
 }
 
@@ -159,13 +181,19 @@ generateBtn.addEventListener("click", async () => {
         slices: Number(document.getElementById("optSlices").value),
         aspect: document.getElementById("optAspect").value,
       };
-    } else if (tpl.mode === "story-blur") {
-      if (selected.length !== 1) throw new Error("Select exactly 1 photo for the story cover.");
+    } else if (tpl.mode === "fit") {
+      if (selected.length === 0) throw new Error("Select at least 1 photo.");
+      const bgMode = document.getElementById("optBgMode").value;
+      const background =
+        bgMode === "blur"
+          ? { mode: "blur", sigma: Number(document.getElementById("optBlur").value) }
+          : { mode: "color", color: document.getElementById("optColor").value };
       payload = {
-        type: "story-blur",
-        image: selected[0],
+        type: "fit",
+        images: selected,
         aspect: document.getElementById("optAspect").value,
-        blurSigma: Number(document.getElementById("optBlur").value),
+        orientation: document.getElementById("optOrientation").value,
+        background,
       };
     }
 

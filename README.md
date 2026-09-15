@@ -34,8 +34,22 @@ npm start
 - **Vertical → horizontal panel**: arranges photos in a single row (landscape canvas).
 - **Diptych / Triptych**: 2 or 3 photos side by side with adjustable gap/background.
 - **Carousel splitter**: cuts one wide photo into N equal Instagram carousel slides.
-- **Story/Reel cover**: fits a photo into 9:16 (or other aspect) with a blurred, cropped
-  copy of itself as background filler — no ugly letterboxing.
+- **Fit without cropping**: fits each selected photo into a chosen aspect ratio and
+  orientation (portrait/landscape) with no cropping of the subject — fills the rest of
+  the canvas with either a blurred copy of the photo or a solid color of your choice.
+  Produces one output per selected photo (batch).
 
-All templates share three server-side primitives: `composeGrid`, `composeCarousel`, and
-`composeStoryBlur` (see [server/src/compositions](server/src/compositions)).
+## Aspect ratios & sizes
+
+Ratios and pixel sizes follow current Instagram recommendations; pick an orientation to
+swap width/height (not applicable to the square ratio):
+
+| Ratio    | Native use          | Pixel size (native orientation) |
+| -------- | ------------------- | -------------------------------- |
+| 1:1      | Square feed post     | 1080 × 1080                      |
+| 4:5      | Portrait feed post    | 1080 × 1350                      |
+| 1.91:1   | Landscape feed post   | 1080 × 566                       |
+| 9:16     | Story / Reel          | 1080 × 1920                      |
+
+All templates share server-side primitives: `composeGrid`, `composeCarousel`, and
+`composeFit` (see [server/src/compositions](server/src/compositions)).

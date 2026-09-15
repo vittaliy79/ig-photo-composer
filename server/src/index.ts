@@ -5,7 +5,7 @@ import fs from "node:fs";
 import { nanoid } from "nanoid";
 import { composeGrid } from "./compositions/grid.js";
 import { composeCarousel } from "./compositions/carousel.js";
-import { composeStoryBlur } from "./compositions/storyBlur.js";
+import { composeFit } from "./compositions/fit.js";
 import type { ComposeRequest } from "./types.js";
 
 // Assumes the process is started from the project root (via npm scripts).
@@ -53,11 +53,14 @@ app.post("/api/compose", async (req, res) => {
         return `/output/${name}`;
       });
       res.json({ images: urls });
-    } else if (body.type === "story-blur") {
-      const buf = await composeStoryBlur(UPLOADS_DIR, body);
-      const name = `story-${nanoid(8)}.jpg`;
-      fs.writeFileSync(path.join(OUTPUT_DIR, name), buf);
-      res.json({ images: [`/output/${name}`] });
+    } else if (body.type === "fit") {
+      const buffers = await composeFit(UPLOADS_DIR, body);
+      const urls = buffers.map((buf, i) => {
+        const name = `fit-${nanoid(8)}-${i + 1}.jpg`;
+        fs.writeFileSync(path.join(OUTPUT_DIR, name), buf);
+        return `/output/${name}`;
+      });
+      res.json({ images: urls });
     } else {
       res.status(400).json({ error: "Unknown composition type" });
     }
