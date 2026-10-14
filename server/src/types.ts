@@ -47,6 +47,15 @@ export interface PhotoCarouselRequest {
   aspect: AspectRatioId;
 }
 
+export type CarouselCompositionId = "panorama" | "feature-pair" | "magazine-spread" | "photo-journal" | "profile-grid" | "layered-story";
+
+export interface CompositionCarouselRequest {
+  type: "composition-carousel";
+  images: string[];
+  aspect: AspectRatioId;
+  composition: CarouselCompositionId;
+}
+
 export type FitBackground = { mode: "blur"; sigma?: number } | { mode: "color"; color: string };
 
 export interface FitRequest {
@@ -57,4 +66,4 @@ export interface FitRequest {
   background: FitBackground;
 }
 
-export type ComposeRequest = GridRequest | CarouselRequest | PhotoCarouselRequest | FitRequest;
+export type ComposeRequest = GridRequest | CarouselRequest | PhotoCarouselRequest | CompositionCarouselRequest | FitRequest;

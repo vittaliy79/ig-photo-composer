@@ -1,6 +1,7 @@
 const state = {
   uploaded: [], // {id, url}
   selectedOrder: [], // ids in click order
+  selectedCompositionId: "feature-pair",
 };
 
 const TEMPLATES = {
@@ -10,6 +11,7 @@ const TEMPLATES = {
   "stack-horizontal": { mode: "grid", rows: 1, cols: "variable", defaultCount: 3 },
   diptych: { mode: "grid", rows: 1, cols: 2, count: 2 },
   triptych: { mode: "grid", rows: 1, cols: 3, count: 3 },
+  "composition-carousel": { mode: "composition-carousel" },
   "photo-carousel": { mode: "photo-carousel" },
   carousel: { mode: "carousel" },
   fit: { mode: "fit" },
@@ -26,6 +28,86 @@ const CAROUSEL_FORMAT_OPTIONS = `
   <option value="4:5">4:5 — portrait</option>
   <option value="1.91:1">1.91:1 — landscape</option>`;
 
+const COMPOSITIONS = [
+  {
+    id: "panorama",
+    name: "Panorama",
+    description: "One photo flows across two slides.",
+    slides: 2,
+    columns: 2,
+    rows: 1,
+    slots: [{ x: 0, y: 0, width: 2, height: 1 }],
+  },
+  {
+    id: "feature-pair",
+    name: "Feature + pair",
+    description: "One full-height photo beside two details.",
+    slides: 2,
+    columns: 2,
+    rows: 1,
+    slots: [
+      { x: 0, y: 0, width: 1, height: 1 },
+      { x: 1, y: 0, width: 1, height: 0.5 },
+      { x: 1, y: 0.5, width: 1, height: 0.5 },
+    ],
+  },
+  {
+    id: "magazine-spread",
+    name: "Magazine spread",
+    description: "A framed opener and a three-photo collage.",
+    slides: 2,
+    columns: 2,
+    rows: 1,
+    slots: [
+      { x: 0.05, y: 0.06, width: 0.9, height: 0.88 },
+      { x: 1.05, y: 0.06, width: 0.9, height: 0.43 },
+      { x: 1.05, y: 0.53, width: 0.43, height: 0.41 },
+      { x: 1.52, y: 0.53, width: 0.43, height: 0.41 },
+    ],
+  },
+  {
+    id: "photo-journal",
+    name: "Photo journal",
+    description: "Two full slides followed by a split-screen finish.",
+    slides: 3,
+    columns: 3,
+    rows: 1,
+    slots: [
+      { x: 0, y: 0, width: 1, height: 1 },
+      { x: 1, y: 0, width: 1, height: 1 },
+      { x: 2, y: 0, width: 0.48, height: 1 },
+      { x: 2.52, y: 0, width: 0.48, height: 1 },
+    ],
+  },
+  {
+    id: "profile-grid",
+    name: "Profile grid 3×3",
+    description: "Nine coordinated tiles for a profile grid.",
+    slides: 9,
+    columns: 3,
+    rows: 3,
+    slots: Array.from({ length: 9 }, (_, index) => ({
+      x: index % 3,
+      y: Math.floor(index / 3),
+      width: 1,
+      height: 1,
+    })),
+  },
+  {
+    id: "layered-story",
+    name: "Layered story",
+    description: "A panoramic backdrop with two framed photos.",
+    slides: 2,
+    columns: 2,
+    rows: 1,
+    slots: [
+      { x: 0, y: 0, width: 2, height: 1 },
+      { x: 0.15, y: 0.13, width: 0.72, height: 0.72, framed: true },
+      { x: 1.12, y: 0.17, width: 0.72, height: 0.67, framed: true },
+    ],
+  },
+];
+
 const fileInput = document.getElementById("fileInput");
 const thumbsEl = document.getElementById("thumbs");
 const templateSelect = document.getElementById("templateSelect");
@@ -33,6 +115,8 @@ const optionsEl = document.getElementById("options");
 const generateBtn = document.getElementById("generateBtn");
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
+const compositionGalleryEl = document.getElementById("compositionGallery");
+const compositionPreviewEl = document.getElementById("compositionPreview");
 const carouselPreviewEl = document.getElementById("carouselPreview");
 const lightbox = document.getElementById("lightbox");
 const lightboxImg = document.getElementById("lightboxImg");
@@ -86,14 +170,30 @@ function renderThumbs() {
     });
     thumbsEl.appendChild(div);
   }
+  renderCompositionGallery();
+  renderCompositionPreview();
 }
 
 function renderOptions() {
   const key = templateSelect.value;
   const tpl = TEMPLATES[key];
   optionsEl.innerHTML = "";
+  compositionGalleryEl.innerHTML = "";
+  compositionPreviewEl.innerHTML = "";
 
-  if (tpl.mode === "grid") {
+  if (tpl.mode === "composition-carousel") {
+    optionsEl.innerHTML = `
+      <label>Slide format
+        <select id="optAspect">${CAROUSEL_FORMAT_OPTIONS}</select>
+      </label>
+      <span class="option-hint">Choose a layout, then select its photos in order.</span>`;
+    document.getElementById("optAspect").addEventListener("change", () => {
+      renderCompositionGallery();
+      renderCompositionPreview();
+    });
+    renderCompositionGallery();
+    renderCompositionPreview();
+  } else if (tpl.mode === "grid") {
     if (tpl.rows === "variable" || tpl.cols === "variable") {
       optionsEl.innerHTML += `
         <label>Photos count
@@ -160,6 +260,114 @@ templateSelect.addEventListener("change", renderOptions);
 templateSelect.addEventListener("change", renderCarouselPreview);
 renderOptions();
 renderCarouselPreview();
+
+function renderCompositionGallery() {
+  if (templateSelect.value !== "composition-carousel") return;
+  const gallery = document.createElement("div");
+  gallery.className = "composition-cards";
+
+  for (const composition of COMPOSITIONS) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "composition-card";
+    card.setAttribute("aria-pressed", String(state.selectedCompositionId === composition.id));
+    card.addEventListener("click", () => {
+      state.selectedCompositionId = composition.id;
+      renderCompositionGallery();
+      renderCompositionPreview();
+    });
+
+    const miniature = document.createElement("span");
+    miniature.className = "composition-miniature";
+    const [aspectWidth, aspectHeight] = selectedAspectDimensions();
+    miniature.style.aspectRatio = `${composition.columns * aspectWidth} / ${composition.rows * aspectHeight}`;
+    composition.slots.forEach((slot, index) => {
+      const block = document.createElement("span");
+      block.className = "composition-block" + (slot.framed ? " framed" : "");
+      Object.assign(block.style, {
+        left: `${slot.x / composition.columns * 100}%`,
+        top: `${slot.y / composition.rows * 100}%`,
+        width: `${slot.width / composition.columns * 100}%`,
+        height: `${slot.height / composition.rows * 100}%`,
+      });
+      const photo = state.uploaded.find((item) => item.id === state.selectedOrder[index]);
+      if (photo) block.style.backgroundImage = `url("${photo.url}")`;
+      else block.textContent = "+";
+      miniature.appendChild(block);
+    });
+
+    const title = document.createElement("strong");
+    title.textContent = composition.name;
+    const detail = document.createElement("span");
+    detail.textContent = `${composition.slots.length} photos · ${composition.rows > 1 ? `${composition.columns}×${composition.rows} tiles` : `${composition.slides} slides`}`;
+    card.append(miniature, title, detail);
+    gallery.appendChild(card);
+  }
+  compositionGalleryEl.replaceChildren(gallery);
+}
+
+function renderCompositionPreview() {
+  if (templateSelect.value !== "composition-carousel") {
+    compositionPreviewEl.innerHTML = "";
+    return;
+  }
+
+  const composition = COMPOSITIONS.find((item) => item.id === state.selectedCompositionId);
+  compositionPreviewEl.innerHTML = "";
+  const heading = document.createElement("h3");
+  heading.textContent = `${composition.name} · ${composition.rows > 1 ? `${composition.columns}×${composition.rows} grid` : `${composition.slides} slides`} · ${composition.slots.length} photos`;
+  const scroll = document.createElement("div");
+  scroll.className = "composition-canvas-scroll";
+  const canvas = document.createElement("div");
+  canvas.className = "composition-canvas";
+  canvas.style.setProperty("--photo-frame", `${1.8 / composition.columns}%`);
+  const [aspectWidth, aspectHeight] = selectedAspectDimensions();
+  canvas.style.aspectRatio = `${composition.columns * aspectWidth} / ${composition.rows * aspectHeight}`;
+
+  composition.slots.forEach((slot, index) => {
+    const layer = document.createElement("div");
+    layer.className = "composition-layer" + (slot.framed ? " framed" : "");
+    Object.assign(layer.style, {
+      left: `${slot.x / composition.columns * 100}%`,
+      top: `${slot.y / composition.rows * 100}%`,
+      width: `${slot.width / composition.columns * 100}%`,
+      height: `${slot.height / composition.rows * 100}%`,
+    });
+    const photo = state.uploaded.find((item) => item.id === state.selectedOrder[index]);
+    if (photo) {
+      const image = document.createElement("img");
+      image.src = photo.url;
+      image.alt = `Photo ${index + 1} in ${composition.name}`;
+      layer.appendChild(image);
+    } else {
+      layer.textContent = `Photo ${index + 1}`;
+    }
+    canvas.appendChild(layer);
+  });
+
+  for (let column = 1; column < composition.columns; column++) {
+    const divider = document.createElement("span");
+    divider.className = "composition-divider";
+    divider.style.left = `${column / composition.columns * 100}%`;
+    canvas.appendChild(divider);
+  }
+  for (let row = 1; row < composition.rows; row++) {
+    const divider = document.createElement("span");
+    divider.className = "composition-divider horizontal";
+    divider.style.top = `${row / composition.rows * 100}%`;
+    canvas.appendChild(divider);
+  }
+
+  scroll.appendChild(canvas);
+  compositionPreviewEl.append(heading, scroll);
+}
+
+function selectedAspectDimensions() {
+  const aspect = document.getElementById("optAspect")?.value ?? "1:1";
+  if (aspect === "4:5") return [4, 5];
+  if (aspect === "1.91:1") return [1080, 566];
+  return [1, 1];
+}
 
 function renderCarouselPreview() {
   if (templateSelect.value !== "photo-carousel") {
@@ -253,6 +461,17 @@ generateBtn.addEventListener("click", async () => {
         images: selected,
         aspect: document.getElementById("optAspect").value,
       };
+    } else if (tpl.mode === "composition-carousel") {
+      const composition = COMPOSITIONS.find((item) => item.id === state.selectedCompositionId);
+      if (selected.length !== composition.slots.length) {
+        throw new Error(`${composition.name} needs exactly ${composition.slots.length} selected photos.`);
+      }
+      payload = {
+        type: "composition-carousel",
+        images: selected,
+        aspect: document.getElementById("optAspect").value,
+        composition: composition.id,
+      };
     } else if (tpl.mode === "carousel") {
       if (selected.length !== 1) throw new Error("Select exactly 1 photo for the carousel splitter.");
       payload = {
@@ -288,7 +507,9 @@ generateBtn.addEventListener("click", async () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Generation failed");
 
-    renderResults(data.images);
+    const composition = COMPOSITIONS.find((item) => item.id === state.selectedCompositionId);
+    const resultUnit = tpl.mode === "composition-carousel" && composition.rows > 1 ? "Tile" : "Slide";
+    renderResults(data.images, resultUnit);
     statusEl.textContent = "Done.";
   } catch (err) {
     statusEl.textContent = err.message;
@@ -297,13 +518,13 @@ generateBtn.addEventListener("click", async () => {
   }
 });
 
-function renderResults(urls) {
+function renderResults(urls, unit = "Slide") {
   resultsEl.innerHTML = "";
   for (const [index, url] of urls.entries()) {
     const fig = document.createElement("figure");
     fig.innerHTML = `
       <img src="${url}" alt="result" />
-      <figcaption>${urls.length > 1 ? `Slide ${index + 1} · ` : ""}<a href="${url}" download>Download</a></figcaption>`;
+      <figcaption>${urls.length > 1 ? `${unit} ${index + 1} · ` : ""}<a href="${url}" download>Download</a></figcaption>`;
     fig.querySelector("img").addEventListener("click", () => openLightbox(url));
     resultsEl.appendChild(fig);
   }

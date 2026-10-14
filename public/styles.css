@@ -99,6 +99,134 @@ main {
   font-size: 0.85rem;
 }
 
+.composition-gallery {
+  margin: 0.75rem 0 1rem;
+}
+
+.composition-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.65rem;
+}
+
+.composition-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.55rem;
+  color: #202422;
+  background: #fff;
+  border: 1px solid #d8dcd8;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.composition-card[aria-pressed="true"] {
+  border-color: #285b4c;
+  box-shadow: inset 0 0 0 1px #285b4c;
+}
+
+.composition-miniature {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  background: #f0efeb;
+  border-radius: 3px;
+}
+
+.composition-block {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #777b76;
+  background-color: #d6d9d3;
+  background-position: center;
+  background-size: cover;
+  border: 2px solid #f0efeb;
+  font-size: 0.8rem;
+}
+
+.composition-block.framed {
+  border: 4px solid #fff;
+}
+
+.composition-card strong {
+  font-size: 0.82rem;
+}
+
+.composition-card > span:last-child {
+  color: #646963;
+  font-size: 0.74rem;
+}
+
+.composition-preview:empty {
+  display: none;
+}
+
+.composition-preview h3 {
+  margin: 1rem 0 0.65rem;
+  font-size: 0.95rem;
+}
+
+.composition-canvas-scroll {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.composition-canvas {
+  position: relative;
+  width: min(100%, 900px);
+  min-width: 560px;
+  overflow: hidden;
+  background: #f5f4f0;
+}
+
+.composition-layer {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #777b76;
+  background: #d6d9d3;
+  font-size: 0.8rem;
+}
+
+.composition-layer img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.composition-layer.framed {
+  box-sizing: border-box;
+  padding: var(--photo-frame);
+  background: #fff;
+}
+
+.composition-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.16);
+  pointer-events: none;
+}
+
+.composition-divider.horizontal {
+  top: auto;
+  right: 0;
+  bottom: auto;
+  width: auto;
+  height: 2px;
+}
+
 .carousel-preview:empty {
   display: none;
 }

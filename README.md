@@ -35,6 +35,9 @@ npm start
 - **Diptych / Triptych**: 2 or 3 photos side by side with adjustable gap/background.
 - **Photo carousel**: formats 2–20 selected photos as ordered, individual carousel slides;
   reorder the sequence in the preview before generating.
+- **Composition templates**: choose from panorama, feature-and-pair, magazine-spread,
+  photo-journal, layered-story, and 3×3 profile-grid layouts; each exports its canvas
+  as individual slides or tiles.
 - **Carousel splitter**: cuts one wide photo into N equal Instagram carousel slides.
 - **Fit without cropping**: fits each selected photo into a chosen aspect ratio and
   orientation (portrait/landscape) with no cropping of the subject — fills the rest of

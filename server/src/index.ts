@@ -6,6 +6,7 @@ import { nanoid } from "nanoid";
 import { composeGrid } from "./compositions/grid.js";
 import { composeCarousel } from "./compositions/carousel.js";
 import { composePhotoCarousel } from "./compositions/photo-carousel.js";
+import { composeTemplateCarousel } from "./compositions/template-carousel.js";
 import { composeFit } from "./compositions/fit.js";
 import type { ComposeRequest } from "./types.js";
 
@@ -58,6 +59,14 @@ app.post("/api/compose", async (req, res) => {
       const buffers = await composePhotoCarousel(UPLOADS_DIR, body);
       const urls = buffers.map((buf, i) => {
         const name = `photo-carousel-${nanoid(8)}-${i + 1}.jpg`;
+        fs.writeFileSync(path.join(OUTPUT_DIR, name), buf);
+        return `/output/${name}`;
+      });
+      res.json({ images: urls });
+    } else if (body.type === "composition-carousel") {
+      const buffers = await composeTemplateCarousel(UPLOADS_DIR, body);
+      const urls = buffers.map((buf, i) => {
+        const name = `composition-carousel-${nanoid(8)}-${i + 1}.jpg`;
         fs.writeFileSync(path.join(OUTPUT_DIR, name), buf);
         return `/output/${name}`;
       });
