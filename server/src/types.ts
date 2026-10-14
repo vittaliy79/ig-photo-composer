@@ -41,6 +41,12 @@ export interface CarouselRequest {
   aspect: AspectRatioId;
 }
 
+export interface PhotoCarouselRequest {
+  type: "photo-carousel";
+  images: string[];
+  aspect: AspectRatioId;
+}
+
 export type FitBackground = { mode: "blur"; sigma?: number } | { mode: "color"; color: string };
 
 export interface FitRequest {
@@ -51,4 +57,4 @@ export interface FitRequest {
   background: FitBackground;
 }
 
-export type ComposeRequest = GridRequest | CarouselRequest | FitRequest;
+export type ComposeRequest = GridRequest | CarouselRequest | PhotoCarouselRequest | FitRequest;

@@ -10,6 +10,7 @@ const TEMPLATES = {
   "stack-horizontal": { mode: "grid", rows: 1, cols: "variable", defaultCount: 3 },
   diptych: { mode: "grid", rows: 1, cols: 2, count: 2 },
   triptych: { mode: "grid", rows: 1, cols: 3, count: 3 },
+  "photo-carousel": { mode: "photo-carousel" },
   carousel: { mode: "carousel" },
   fit: { mode: "fit" },
 };
@@ -20,6 +21,11 @@ const ASPECT_OPTIONS = `
   <option value="1.91:1">1.91:1 — landscape</option>
   <option value="9:16">9:16 — story/reel</option>`;
 
+const CAROUSEL_FORMAT_OPTIONS = `
+  <option value="1:1">1:1 — square</option>
+  <option value="4:5">4:5 — portrait</option>
+  <option value="1.91:1">1.91:1 — landscape</option>`;
+
 const fileInput = document.getElementById("fileInput");
 const thumbsEl = document.getElementById("thumbs");
 const templateSelect = document.getElementById("templateSelect");
@@ -27,6 +33,7 @@ const optionsEl = document.getElementById("options");
 const generateBtn = document.getElementById("generateBtn");
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
+const carouselPreviewEl = document.getElementById("carouselPreview");
 const lightbox = document.getElementById("lightbox");
 const lightboxImg = document.getElementById("lightboxImg");
 const lightboxDownload = document.getElementById("lightboxDownload");
@@ -75,6 +82,7 @@ function renderThumbs() {
       if (idx >= 0) state.selectedOrder.splice(idx, 1);
       else state.selectedOrder.push(file.id);
       renderThumbs();
+      renderCarouselPreview();
     });
     thumbsEl.appendChild(div);
   }
@@ -99,6 +107,12 @@ function renderOptions() {
       <label>Background
         <input type="color" id="optBg" value="#ffffff" />
       </label>`;
+  } else if (tpl.mode === "photo-carousel") {
+    optionsEl.innerHTML = `
+      <label>Slide format
+        <select id="optAspect">${CAROUSEL_FORMAT_OPTIONS}</select>
+      </label>
+      <span class="option-hint">Choose 2–20 photos. Each photo becomes one slide.</span>`;
   } else if (tpl.mode === "carousel") {
     optionsEl.innerHTML = `
       <label>Slides
@@ -143,7 +157,64 @@ function renderOptions() {
 }
 
 templateSelect.addEventListener("change", renderOptions);
+templateSelect.addEventListener("change", renderCarouselPreview);
 renderOptions();
+renderCarouselPreview();
+
+function renderCarouselPreview() {
+  if (templateSelect.value !== "photo-carousel") {
+    carouselPreviewEl.innerHTML = "";
+    return;
+  }
+
+  carouselPreviewEl.innerHTML = "";
+  if (state.selectedOrder.length === 0) {
+    carouselPreviewEl.textContent = "Select photos to build your slide sequence.";
+    return;
+  }
+
+  const title = document.createElement("h3");
+  title.textContent = `Slide sequence · ${state.selectedOrder.length}`;
+  carouselPreviewEl.appendChild(title);
+
+  const slides = document.createElement("ol");
+  slides.className = "carousel-slides";
+  state.selectedOrder.forEach((id, index) => {
+    const file = state.uploaded.find((item) => item.id === id);
+    if (!file) return;
+
+    const slide = document.createElement("li");
+    slide.className = "carousel-slide";
+    const image = document.createElement("img");
+    image.src = file.url;
+    image.alt = `Slide ${index + 1} preview`;
+    const number = document.createElement("span");
+    number.className = "slide-number";
+    number.textContent = String(index + 1).padStart(2, "0");
+    const controls = document.createElement("div");
+    controls.className = "slide-controls";
+
+    for (const [label, offset] of [["Move earlier", -1], ["Move later", 1]]) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = offset < 0 ? "←" : "→";
+      button.setAttribute("aria-label", `${label}: slide ${index + 1}`);
+      button.title = label;
+      button.disabled = index + offset < 0 || index + offset >= state.selectedOrder.length;
+      button.addEventListener("click", () => {
+        const target = index + offset;
+        [state.selectedOrder[index], state.selectedOrder[target]] = [state.selectedOrder[target], state.selectedOrder[index]];
+        renderThumbs();
+        renderCarouselPreview();
+      });
+      controls.appendChild(button);
+    }
+
+    slide.append(image, number, controls);
+    slides.appendChild(slide);
+  });
+  carouselPreviewEl.appendChild(slides);
+}
 
 generateBtn.addEventListener("click", async () => {
   const key = templateSelect.value;
@@ -172,6 +243,15 @@ generateBtn.addEventListener("click", async () => {
         cols,
         gap: Number(document.getElementById("optGap").value),
         background: document.getElementById("optBg").value,
+      };
+    } else if (tpl.mode === "photo-carousel") {
+      if (selected.length < 2 || selected.length > 20) {
+        throw new Error("Select between 2 and 20 photos for a carousel.");
+      }
+      payload = {
+        type: "photo-carousel",
+        images: selected,
+        aspect: document.getElementById("optAspect").value,
       };
     } else if (tpl.mode === "carousel") {
       if (selected.length !== 1) throw new Error("Select exactly 1 photo for the carousel splitter.");
@@ -219,11 +299,11 @@ generateBtn.addEventListener("click", async () => {
 
 function renderResults(urls) {
   resultsEl.innerHTML = "";
-  for (const url of urls) {
+  for (const [index, url] of urls.entries()) {
     const fig = document.createElement("figure");
     fig.innerHTML = `
       <img src="${url}" alt="result" />
-      <figcaption><a href="${url}" download>Download</a></figcaption>`;
+      <figcaption>${urls.length > 1 ? `Slide ${index + 1} · ` : ""}<a href="${url}" download>Download</a></figcaption>`;
     fig.querySelector("img").addEventListener("click", () => openLightbox(url));
     resultsEl.appendChild(fig);
   }

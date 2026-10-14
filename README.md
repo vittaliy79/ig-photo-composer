@@ -33,6 +33,8 @@ npm start
 - **Horizontal → vertical panel**: stacks photos in a single column (portrait canvas).
 - **Vertical → horizontal panel**: arranges photos in a single row (landscape canvas).
 - **Diptych / Triptych**: 2 or 3 photos side by side with adjustable gap/background.
+- **Photo carousel**: formats 2–20 selected photos as ordered, individual carousel slides;
+  reorder the sequence in the preview before generating.
 - **Carousel splitter**: cuts one wide photo into N equal Instagram carousel slides.
 - **Fit without cropping**: fits each selected photo into a chosen aspect ratio and
   orientation (portrait/landscape) with no cropping of the subject — fills the rest of
