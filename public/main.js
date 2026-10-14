@@ -338,6 +338,7 @@ function renderCompositionPreview() {
   canvas.style.setProperty("--photo-frame", `${1.8 / composition.columns}%`);
   const [aspectWidth, aspectHeight] = selectedAspectDimensions();
   canvas.style.aspectRatio = `${composition.columns * aspectWidth} / ${composition.rows * aspectHeight}`;
+  compositionPreviewEl.append(heading, scroll);
   scroll.appendChild(canvas);
 
   composition.slots.forEach((slot, index) => {
@@ -486,7 +487,7 @@ function renderCompositionPreview() {
     row.append(label, select, zoomLabel, zoomInput, positionControls);
     slotControls.appendChild(row);
   });
-  compositionPreviewEl.append(heading, scroll, slotControls);
+  compositionPreviewEl.appendChild(slotControls);
 }
 
 function updateCompositionImage(layer, image, imageId, framed, columns) {
