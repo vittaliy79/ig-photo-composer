@@ -173,6 +173,52 @@ main {
   font-size: 0.95rem;
 }
 
+.composition-slot-controls {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.composition-slot-control {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(7rem, 1fr) 3rem minmax(6rem, 0.7fr) repeat(2, minmax(7rem, 1fr));
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #e4e6e2;
+  font-size: 0.78rem;
+}
+
+.composition-slot-control > label:first-child {
+  font-weight: 600;
+}
+
+.composition-slot-control select {
+  min-width: 0;
+  padding: 0.4rem;
+  border: 1px solid #c8ceca;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.composition-slot-control input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  accent-color: #285b4c;
+}
+
+.composition-zoom-control,
+.composition-position-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.composition-position-controls {
+  display: contents;
+}
+
 .composition-canvas-scroll {
   overflow-x: auto;
   padding-bottom: 0.5rem;
@@ -236,6 +282,11 @@ main {
   touch-action: auto;
 }
 
+.composition-swap-handle:hover,
+.composition-swap-handle:focus-visible {
+  background: #285b4c;
+}
+
 .composition-layer.framed {
   box-sizing: border-box;
   padding: var(--photo-frame);
@@ -258,6 +309,19 @@ main {
   bottom: auto;
   width: auto;
   height: 2px;
+}
+
+@media (max-width: 700px) {
+  .composition-slot-control {
+    grid-template-columns: 4rem minmax(6rem, 1fr) 3rem minmax(5rem, 0.8fr);
+  }
+
+  .composition-position-controls {
+    grid-column: 2 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
 }
 
 .carousel-preview:empty {

@@ -114,7 +114,8 @@ export async function composeTemplateCarousel(
     const imagePath = path.join(uploadsDir, req.images[index]);
     const source = sharp(imagePath);
     const metadata = await source.metadata();
-    const scale = Math.max(targetWidth / (metadata.width ?? targetWidth), targetHeight / (metadata.height ?? targetHeight));
+    const zoom = Math.max(1, Math.min(3, req.cropZoom?.[index] ?? 1));
+    const scale = Math.max(targetWidth / (metadata.width ?? targetWidth), targetHeight / (metadata.height ?? targetHeight)) * zoom;
     const resizedWidth = Math.ceil((metadata.width ?? targetWidth) * scale);
     const resizedHeight = Math.ceil((metadata.height ?? targetHeight) * scale);
     const focus = req.cropFocus?.[index] ?? { x: 0.5, y: 0.5 };
