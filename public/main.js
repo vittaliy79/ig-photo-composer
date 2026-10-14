@@ -2,6 +2,8 @@ const state = {
   uploaded: [], // {id, url}
   selectedOrder: [], // ids in click order
   selectedCompositionId: "feature-pair",
+  compositionAssignments: [],
+  cropFocusByImage: {},
 };
 
 const TEMPLATES = {
@@ -165,6 +167,7 @@ function renderThumbs() {
       const idx = state.selectedOrder.indexOf(file.id);
       if (idx >= 0) state.selectedOrder.splice(idx, 1);
       else state.selectedOrder.push(file.id);
+      syncCompositionAssignments();
       renderThumbs();
       renderCarouselPreview();
     });
@@ -172,6 +175,15 @@ function renderThumbs() {
   }
   renderCompositionGallery();
   renderCompositionPreview();
+}
+
+function syncCompositionAssignments() {
+  const selected = new Set(state.selectedOrder);
+  state.compositionAssignments = state.compositionAssignments.filter((id) => selected.has(id));
+  for (const id of state.selectedOrder) {
+    if (!state.compositionAssignments.includes(id)) state.compositionAssignments.push(id);
+    state.cropFocusByImage[id] ??= { x: 0.5, y: 0.5 };
+  }
 }
 
 function renderOptions() {
@@ -290,7 +302,7 @@ function renderCompositionGallery() {
         width: `${slot.width / composition.columns * 100}%`,
         height: `${slot.height / composition.rows * 100}%`,
       });
-      const photo = state.uploaded.find((item) => item.id === state.selectedOrder[index]);
+      const photo = state.uploaded.find((item) => item.id === state.compositionAssignments[index]);
       if (photo) block.style.backgroundImage = `url("${photo.url}")`;
       else block.textContent = "+";
       miniature.appendChild(block);
@@ -327,18 +339,52 @@ function renderCompositionPreview() {
   composition.slots.forEach((slot, index) => {
     const layer = document.createElement("div");
     layer.className = "composition-layer" + (slot.framed ? " framed" : "");
+    layer.dataset.slotIndex = String(index);
+    layer.title = "Drag the photo to adjust its crop";
     Object.assign(layer.style, {
       left: `${slot.x / composition.columns * 100}%`,
       top: `${slot.y / composition.rows * 100}%`,
       width: `${slot.width / composition.columns * 100}%`,
       height: `${slot.height / composition.rows * 100}%`,
     });
-    const photo = state.uploaded.find((item) => item.id === state.selectedOrder[index]);
+    const imageId = state.compositionAssignments[index];
+    const photo = state.uploaded.find((item) => item.id === imageId);
     if (photo) {
       const image = document.createElement("img");
       image.src = photo.url;
       image.alt = `Photo ${index + 1} in ${composition.name}`;
+      image.draggable = false;
+      const focus = state.cropFocusByImage[imageId] ?? { x: 0.5, y: 0.5 };
+      image.style.objectPosition = `${focus.x * 100}% ${focus.y * 100}%`;
+      layer.addEventListener("pointerdown", (event) => beginPhotoPan(event, layer, image, imageId));
       layer.appendChild(image);
+      const swapHandle = document.createElement("button");
+      swapHandle.type = "button";
+      swapHandle.className = "composition-swap-handle";
+      swapHandle.textContent = "⠿";
+      swapHandle.title = "Drag onto another photo to swap";
+      swapHandle.setAttribute("aria-label", `Move photo ${index + 1} to another frame`);
+      swapHandle.draggable = true;
+      swapHandle.addEventListener("dragstart", (event) => {
+        event.dataTransfer?.setData("text/plain", String(index));
+        if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+      });
+      layer.appendChild(swapHandle);
+      layer.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        layer.classList.add("drop-target");
+      });
+      layer.addEventListener("dragleave", () => layer.classList.remove("drop-target"));
+      layer.addEventListener("drop", (event) => {
+        event.preventDefault();
+        layer.classList.remove("drop-target");
+        const sourceIndex = Number(event.dataTransfer?.getData("text/plain"));
+        if (!Number.isInteger(sourceIndex) || sourceIndex === index) return;
+        [state.compositionAssignments[sourceIndex], state.compositionAssignments[index]] =
+          [state.compositionAssignments[index], state.compositionAssignments[sourceIndex]];
+        renderCompositionGallery();
+        renderCompositionPreview();
+      });
     } else {
       layer.textContent = `Photo ${index + 1}`;
     }
@@ -360,6 +406,37 @@ function renderCompositionPreview() {
 
   scroll.appendChild(canvas);
   compositionPreviewEl.append(heading, scroll);
+}
+
+function beginPhotoPan(event, layer, image, imageId) {
+  if (event.target.closest(".composition-swap-handle")) return;
+  event.preventDefault();
+  const bounds = image.getBoundingClientRect();
+  const focus = state.cropFocusByImage[imageId] ?? { x: 0.5, y: 0.5 };
+  const scale = Math.max(bounds.width / image.naturalWidth, bounds.height / image.naturalHeight);
+  const overflowX = Math.max(1, image.naturalWidth * scale - bounds.width);
+  const overflowY = Math.max(1, image.naturalHeight * scale - bounds.height);
+  const startX = event.clientX;
+  const startY = event.clientY;
+  const startFocus = { ...focus };
+  layer.setPointerCapture(event.pointerId);
+
+  const move = (moveEvent) => {
+    const next = {
+      x: Math.max(0, Math.min(1, startFocus.x - (moveEvent.clientX - startX) / overflowX)),
+      y: Math.max(0, Math.min(1, startFocus.y - (moveEvent.clientY - startY) / overflowY)),
+    };
+    state.cropFocusByImage[imageId] = next;
+    image.style.objectPosition = `${next.x * 100}% ${next.y * 100}%`;
+  };
+  const finish = () => {
+    layer.removeEventListener("pointermove", move);
+    layer.removeEventListener("pointerup", finish);
+    layer.removeEventListener("pointercancel", finish);
+  };
+  layer.addEventListener("pointermove", move);
+  layer.addEventListener("pointerup", finish);
+  layer.addEventListener("pointercancel", finish);
 }
 
 function selectedAspectDimensions() {
@@ -463,14 +540,15 @@ generateBtn.addEventListener("click", async () => {
       };
     } else if (tpl.mode === "composition-carousel") {
       const composition = COMPOSITIONS.find((item) => item.id === state.selectedCompositionId);
-      if (selected.length !== composition.slots.length) {
+      if (state.compositionAssignments.length !== composition.slots.length) {
         throw new Error(`${composition.name} needs exactly ${composition.slots.length} selected photos.`);
       }
       payload = {
         type: "composition-carousel",
-        images: selected,
+        images: state.compositionAssignments,
         aspect: document.getElementById("optAspect").value,
         composition: composition.id,
+        cropFocus: state.compositionAssignments.map((imageId) => state.cropFocusByImage[imageId] ?? { x: 0.5, y: 0.5 }),
       };
     } else if (tpl.mode === "carousel") {
       if (selected.length !== 1) throw new Error("Select exactly 1 photo for the carousel splitter.");

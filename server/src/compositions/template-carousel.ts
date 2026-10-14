@@ -109,8 +109,20 @@ export async function composeTemplateCarousel(
       composites.push({ input: backing, left, top });
     }
 
-    const photo = await sharp(path.join(uploadsDir, req.images[index]))
-      .resize(slotWidth - frame * 2, slotHeight - frame * 2, { fit: "cover", position: "attention" })
+    const targetWidth = slotWidth - frame * 2;
+    const targetHeight = slotHeight - frame * 2;
+    const imagePath = path.join(uploadsDir, req.images[index]);
+    const source = sharp(imagePath);
+    const metadata = await source.metadata();
+    const scale = Math.max(targetWidth / (metadata.width ?? targetWidth), targetHeight / (metadata.height ?? targetHeight));
+    const resizedWidth = Math.ceil((metadata.width ?? targetWidth) * scale);
+    const resizedHeight = Math.ceil((metadata.height ?? targetHeight) * scale);
+    const focus = req.cropFocus?.[index] ?? { x: 0.5, y: 0.5 };
+    const cropLeft = Math.round((resizedWidth - targetWidth) * Math.max(0, Math.min(1, focus.x)));
+    const cropTop = Math.round((resizedHeight - targetHeight) * Math.max(0, Math.min(1, focus.y)));
+    const photo = await source
+      .resize(resizedWidth, resizedHeight)
+      .extract({ left: cropLeft, top: cropTop, width: targetWidth, height: targetHeight })
       .jpeg({ quality: 92 })
       .toBuffer();
     composites.push({ input: photo, left: left + frame, top: top + frame });

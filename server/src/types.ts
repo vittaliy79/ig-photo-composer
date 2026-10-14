@@ -54,6 +54,7 @@ export interface CompositionCarouselRequest {
   images: string[];
   aspect: AspectRatioId;
   composition: CarouselCompositionId;
+  cropFocus?: Array<{ x: number; y: number }>;
 }
 
 export type FitBackground = { mode: "blur"; sigma?: number } | { mode: "color"; color: string };
