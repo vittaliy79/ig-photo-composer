@@ -344,7 +344,7 @@ function renderCompositionPreview() {
     const layer = document.createElement("div");
     layer.className = "composition-layer" + (slot.framed ? " framed" : "");
     layer.dataset.slotIndex = String(index);
-    layer.title = "Drag the photo to adjust its crop";
+    layer.title = "Drag to reposition · Pinch to zoom · Use handle to swap";
     Object.assign(layer.style, {
       left: `${slot.x / composition.columns * 100}%`,
       top: `${slot.y / composition.rows * 100}%`,
@@ -359,6 +359,7 @@ function renderCompositionPreview() {
       image.alt = `Photo ${index + 1} in ${composition.name}`;
       image.draggable = false;
       layer.addEventListener("pointerdown", (event) => beginPhotoPan(event, layer, image, imageId));
+      layer.addEventListener("wheel", (event) => zoomPhotoAtPointer(event, layer, image, imageId, slot.framed, composition.columns), { passive: false });
       layer.appendChild(image);
       const swapHandle = document.createElement("button");
       swapHandle.type = "button";
@@ -415,6 +416,7 @@ function renderCompositionPreview() {
     if (!imageId) return;
     const row = document.createElement("div");
     row.className = "composition-slot-control";
+    row.dataset.imageId = imageId;
     const label = document.createElement("label");
     label.textContent = `Frame ${index + 1}`;
     const select = document.createElement("select");
@@ -508,16 +510,61 @@ function updateCompositionImage(layer, image, imageId, framed, columns) {
   image.style.top = `${frame - (imageHeight - height) * focus.y}px`;
 }
 
+function getCompositionImageBounds(layer, image, framed, columns) {
+  const frame = framed ? layer.parentElement.clientWidth * (1.8 / columns / 100) : 0;
+  const width = Math.max(1, layer.clientWidth - frame * 2);
+  const height = Math.max(1, layer.clientHeight - frame * 2);
+  return {
+    frame,
+    width,
+    height,
+    overflowX: Math.max(0, image.offsetWidth - width),
+    overflowY: Math.max(0, image.offsetHeight - height),
+  };
+}
+
+function syncCompositionCropControls(imageId) {
+  const row = [...compositionPreviewEl.querySelectorAll(".composition-slot-control")]
+    .find((control) => control.dataset.imageId === imageId);
+  if (!row) return;
+  row.querySelector('[aria-label^="Zoom photo"]').value = String(state.cropZoomByImage[imageId] ?? 1);
+  row.querySelector('[aria-label^="Horizontal crop position"]').value = String(state.cropFocusByImage[imageId]?.x ?? 0.5);
+  row.querySelector('[aria-label^="Vertical crop position"]').value = String(state.cropFocusByImage[imageId]?.y ?? 0.5);
+}
+
+function zoomPhotoAtPointer(event, layer, image, imageId, framed, columns) {
+  if (!event.ctrlKey && !event.metaKey) return;
+  event.preventDefault();
+  const currentZoom = state.cropZoomByImage[imageId] ?? 1;
+  const nextZoom = Math.max(1, Math.min(3, currentZoom * Math.exp(-event.deltaY * 0.002)));
+  if (nextZoom === currentZoom) return;
+
+  const bounds = getCompositionImageBounds(layer, image, framed, columns);
+  const pointerX = Math.max(0, Math.min(1, (event.clientX - layer.getBoundingClientRect().left - bounds.frame) / bounds.width));
+  const pointerY = Math.max(0, Math.min(1, (event.clientY - layer.getBoundingClientRect().top - bounds.frame) / bounds.height));
+  const nextScale = nextZoom / currentZoom;
+  const nextWidth = image.offsetWidth * nextScale;
+  const nextHeight = image.offsetHeight * nextScale;
+  const focus = state.cropFocusByImage[imageId] ?? { x: 0.5, y: 0.5 };
+
+  state.cropFocusByImage[imageId] = {
+    x: nextWidth <= bounds.width + 1 ? 0.5 : Math.max(0, Math.min(1, (nextScale * (bounds.overflowX * focus.x + pointerX * bounds.width) - pointerX * bounds.width) / (nextWidth - bounds.width))),
+    y: nextHeight <= bounds.height + 1 ? 0.5 : Math.max(0, Math.min(1, (nextScale * (bounds.overflowY * focus.y + pointerY * bounds.height) - pointerY * bounds.height) / (nextHeight - bounds.height))),
+  };
+  state.cropZoomByImage[imageId] = nextZoom;
+  updateCompositionImage(layer, image, imageId, framed, columns);
+  syncCompositionCropControls(imageId);
+}
+
 function beginPhotoPan(event, layer, image, imageId) {
   if (event.target.closest(".composition-swap-handle")) return;
   event.preventDefault();
   const columns = Number(layer.parentElement.dataset.columns);
-  const frame = layer.classList.contains("framed") ? layer.parentElement.clientWidth * (1.8 / columns / 100) : 0;
-  const frameWidth = Math.max(1, layer.clientWidth - frame * 2);
-  const frameHeight = Math.max(1, layer.clientHeight - frame * 2);
+  const framed = layer.classList.contains("framed");
+  const bounds = getCompositionImageBounds(layer, image, framed, columns);
   const focus = state.cropFocusByImage[imageId] ?? { x: 0.5, y: 0.5 };
-  const overflowX = Math.max(1, image.offsetWidth - frameWidth);
-  const overflowY = Math.max(1, image.offsetHeight - frameHeight);
+  const overflowX = Math.max(1, bounds.overflowX);
+  const overflowY = Math.max(1, bounds.overflowY);
   const startX = event.clientX;
   const startY = event.clientY;
   const startFocus = { ...focus };
@@ -529,7 +576,8 @@ function beginPhotoPan(event, layer, image, imageId) {
       y: Math.max(0, Math.min(1, startFocus.y - (moveEvent.clientY - startY) / overflowY)),
     };
     state.cropFocusByImage[imageId] = next;
-    updateCompositionImage(layer, image, imageId, layer.classList.contains("framed"), columns);
+    updateCompositionImage(layer, image, imageId, framed, columns);
+    syncCompositionCropControls(imageId);
   };
   const finish = () => {
     layer.removeEventListener("pointermove", move);
